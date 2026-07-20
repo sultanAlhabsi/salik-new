@@ -1,0 +1,19 @@
+node_modules/
+dist/
+dist-server/
+coverage/
+playwright-report/
+test-results/
+output/playwright/
+.env
+.env.local
+*.db
+*.db-journal
+*.sqlite
+storage/uploads/
+npm-debug.log*
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key
+.beads/proxieddb/

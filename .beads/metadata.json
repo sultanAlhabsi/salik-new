@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "salik_new",
+  "project_id": "9349643c-c895-41df-ae04-8eb93e4a2a7a"
+}

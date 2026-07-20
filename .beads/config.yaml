@@ -1,0 +1,6 @@
+repos:
+    primary: "."
+    additional:
+        - "y"
+export:
+    auto: true
