@@ -1,0 +1,613 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationType {
+  PLATFORM
+  SUPPLIER
+  STORE
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  SUPPLIER_ADMIN
+  SUPPLIER_STAFF
+  STORE_ADMIN
+  STORE_BUYER
+  DRIVER
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REVOKED
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+  WAREHOUSE
+}
+
+enum PlanStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  ARCHIVED
+}
+
+enum InventoryMovementType {
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RESERVATION
+  RELEASE
+  DEDUCTION
+  RETURN
+}
+
+enum CartStatus {
+  ACTIVE
+  CHECKED_OUT
+}
+
+enum CheckoutStatus {
+  SUBMITTED
+  COMPLETED
+  FAILED
+}
+
+enum RecurringOrderStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  PREPARING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  INVOICE
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  CANCELLED
+  VOID
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  ACCEPTED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  RESCHEDULED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+model Organization {
+  id            String             @id @default(cuid())
+  name          String
+  type          OrganizationType
+  status        OrganizationStatus @default(ACTIVE)
+  email         String?
+  phone         String?
+  taxNumber     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  archivedAt    DateTime?
+  users         User[]
+  addresses     Address[]
+  warehouses    Warehouse[]        @relation("SupplierWarehouses")
+  suppliedProducts Product[]       @relation("SupplierProducts")
+  categories    ProductCategory[]  @relation("SupplierCategories")
+  subscriptions Subscription[]     @relation("SupplierSubscriptions")
+  storeCarts    Cart[]             @relation("StoreCarts")
+  supplierOrders Order[]           @relation("SupplierOrders")
+  storeOrders   Order[]            @relation("StoreOrders")
+  supplierDeliveries Delivery[]    @relation("SupplierDeliveries")
+  storeDeliveries Delivery[]       @relation("StoreDeliveries")
+  notifications Notification[]
+  supportTickets SupportTicket[]
+  attachments   Attachment[]
+  auditLogs     AuditLog[]
+  recurringStoreOrders    RecurringOrder[] @relation("RecurringStoreOrders")
+  recurringSupplierOrders RecurringOrder[] @relation("RecurringSupplierOrders")
+}
+
+model User {
+  id              String      @id @default(cuid())
+  authUserId      String?     @unique
+  email           String      @unique
+  name            String
+  passwordHash    String
+  role            UserRole
+  status          UserStatus  @default(ACTIVE)
+  organizationId  String?
+  timezone        String      @default("Asia/Muscat")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  sessions        Session[]
+  cartItems       CartItem[]
+  carts           Cart[]
+  checkouts       Checkout[]
+  createdOrders   Order[]     @relation("OrderCreator")
+  orderEvents     OrderEvent[]
+  deliveryEvents  DeliveryEvent[]
+  assignedDeliveries Delivery[] @relation("DriverDeliveries")
+  notifications   Notification[] @relation("UserNotifications")
+  uploadedAttachments Attachment[]
+  auditLogs        AuditLog[] @relation("ActorAuditLogs")
+  recurringOrders   RecurringOrder[]
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Address {
+  id              String       @id @default(cuid())
+  organizationId  String
+  type            AddressType
+  label           String
+  line1           String
+  line2           String?
+  city            String
+  country         String       @default("Oman")
+  phone           String?
+  isDefault       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  warehouses      Warehouse[]
+  orders          Order[]      @relation("OrderDeliveryAddress")
+  recurringOrders RecurringOrder[]
+}
+
+model Warehouse {
+  id          String       @id @default(cuid())
+  supplierId  String
+  addressId   String?
+  name        String
+  status      OrganizationStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  supplier    Organization @relation("SupplierWarehouses", fields: [supplierId], references: [id])
+  address     Address?     @relation(fields: [addressId], references: [id])
+  stocks      InventoryStock[]
+  movements   InventoryMovement[]
+}
+
+model Plan {
+  id              String      @id @default(cuid())
+  code            String      @unique
+  name            String
+  status          PlanStatus  @default(ACTIVE)
+  monthlyPriceBaisa Int
+  maxUsers        Int
+  maxWarehouses   Int
+  maxProducts     Int
+  supportsCredit  Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  subscriptions   Subscription[]
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  supplierId  String
+  planId      String
+  status      SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt   DateTime           @default(now())
+  supplier    Organization       @relation("SupplierSubscriptions", fields: [supplierId], references: [id])
+  plan        Plan               @relation(fields: [planId], references: [id])
+}
+
+model ProductCategory {
+  id          String       @id @default(cuid())
+  supplierId  String
+  name        String
+  status      ProductStatus @default(PUBLISHED)
+  supplier    Organization @relation("SupplierCategories", fields: [supplierId], references: [id])
+  products    Product[]
+}
+
+model Product {
+  id              String       @id @default(cuid())
+  supplierId      String
+  categoryId      String?
+  sku             String
+  name            String
+  description     String
+  imageUrl        String?
+  unit            String
+  priceBaisa      Int
+  taxRateBps      Int          @default(0)
+  minOrderQty     Int          @default(1)
+  status          ProductStatus @default(DRAFT)
+  archivedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  supplier        Organization @relation("SupplierProducts", fields: [supplierId], references: [id])
+  category        ProductCategory? @relation(fields: [categoryId], references: [id])
+  stocks          InventoryStock[]
+  movements       InventoryMovement[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  recurringItems  RecurringOrderItem[]
+
+  @@unique([supplierId, sku])
+}
+
+model InventoryStock {
+  id              String    @id @default(cuid())
+  supplierId      String
+  productId       String
+  warehouseId     String
+  onHand          Int       @default(0)
+  reserved        Int       @default(0)
+  lowStockThreshold Int     @default(10)
+  updatedAt       DateTime  @updatedAt
+  product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+}
+
+model InventoryMovement {
+  id              String    @id @default(cuid())
+  supplierId      String
+  productId       String
+  warehouseId     String
+  orderId         String?
+  actorId         String?
+  type            InventoryMovementType
+  quantity        Int
+  beforeOnHand    Int
+  afterOnHand     Int
+  beforeReserved  Int
+  afterReserved   Int
+  idempotencyKey  String?
+  createdAt       DateTime  @default(now())
+  product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([idempotencyKey])
+}
+
+model Cart {
+  id          String     @id @default(cuid())
+  storeId     String
+  userId      String
+  status      CartStatus @default(ACTIVE)
+  checkoutRef String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  store       Organization @relation("StoreCarts", fields: [storeId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+  items       CartItem[]
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  cartId      String
+  productId   String
+  supplierId  String
+  userId      String
+  quantity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cart        Cart     @relation(fields: [cartId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([cartId, productId])
+}
+
+model Checkout {
+  id              String         @id @default(cuid())
+  reference       String         @unique
+  storeId         String
+  userId          String
+  status          CheckoutStatus @default(SUBMITTED)
+  idempotencyKey  String         @unique
+  createdAt       DateTime       @default(now())
+  user            User           @relation(fields: [userId], references: [id])
+  orders          Order[]
+}
+
+model RecurringOrder {
+  id                String               @id @default(cuid())
+  storeId           String
+  supplierId        String
+  userId            String
+  deliveryAddressId String
+  name              String
+  status            RecurringOrderStatus @default(ACTIVE)
+  cadenceDays       Int
+  nextRunAt         DateTime
+  paymentMethod     PaymentMethod
+  note              String?
+  lastRunAt         DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  store             Organization         @relation("RecurringStoreOrders", fields: [storeId], references: [id])
+  supplier          Organization         @relation("RecurringSupplierOrders", fields: [supplierId], references: [id])
+  user              User                 @relation(fields: [userId], references: [id])
+  deliveryAddress   Address              @relation(fields: [deliveryAddressId], references: [id])
+  items             RecurringOrderItem[]
+
+  @@index([storeId, status, nextRunAt])
+}
+
+model RecurringOrderItem {
+  id               String         @id @default(cuid())
+  recurringOrderId String
+  productId        String
+  quantity         Int
+  recurringOrder   RecurringOrder @relation(fields: [recurringOrderId], references: [id])
+  product          Product        @relation(fields: [productId], references: [id])
+
+  @@unique([recurringOrderId, productId])
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  checkoutId        String?
+  supplierId        String
+  storeId           String
+  createdById       String
+  deliveryAddressId String
+  status            OrderStatus   @default(SUBMITTED)
+  paymentStatus     PaymentStatus @default(PENDING)
+  paymentMethod     PaymentMethod
+  note              String?
+  currency          String        @default("OMR")
+  subtotalBaisa     Int
+  taxBaisa          Int
+  shippingBaisa     Int           @default(0)
+  discountBaisa     Int           @default(0)
+  totalBaisa        Int
+  idempotencyKey    String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  checkout          Checkout?     @relation(fields: [checkoutId], references: [id])
+  supplier          Organization  @relation("SupplierOrders", fields: [supplierId], references: [id])
+  store             Organization  @relation("StoreOrders", fields: [storeId], references: [id])
+  createdBy         User          @relation("OrderCreator", fields: [createdById], references: [id])
+  deliveryAddress   Address       @relation("OrderDeliveryAddress", fields: [deliveryAddressId], references: [id])
+  items             OrderItem[]
+  events            OrderEvent[]
+  delivery          Delivery?
+  invoice           Invoice?
+  paymentAttempts   PaymentAttempt[]
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  productId       String
+  skuSnapshot     String
+  nameSnapshot    String
+  unit            String
+  quantity        Int
+  unitPriceBaisa  Int
+  taxRateBps      Int
+  lineTotalBaisa  Int
+  order           Order    @relation(fields: [orderId], references: [id])
+  product         Product  @relation(fields: [productId], references: [id])
+}
+
+model OrderEvent {
+  id              String   @id @default(cuid())
+  orderId         String
+  actorId         String?
+  type            String
+  previousValueJson String?
+  newValueJson    String?
+  message         String
+  createdAt       DateTime @default(now())
+  order           Order    @relation(fields: [orderId], references: [id])
+  actor           User?    @relation(fields: [actorId], references: [id])
+}
+
+model Delivery {
+  id              String         @id @default(cuid())
+  supplierId      String
+  storeId         String
+  orderId         String         @unique
+  driverId        String?
+  status          DeliveryStatus @default(ASSIGNED)
+  recipientName   String?
+  proofNote       String?
+  failureReason   String?
+  scheduledFor    DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  supplier        Organization   @relation("SupplierDeliveries", fields: [supplierId], references: [id])
+  store           Organization   @relation("StoreDeliveries", fields: [storeId], references: [id])
+  order           Order          @relation(fields: [orderId], references: [id])
+  driver          User?          @relation("DriverDeliveries", fields: [driverId], references: [id])
+  events          DeliveryEvent[]
+}
+
+model DeliveryEvent {
+  id              String   @id @default(cuid())
+  deliveryId      String
+  actorId         String?
+  previousStatus  DeliveryStatus?
+  newStatus       DeliveryStatus
+  message         String
+  createdAt       DateTime @default(now())
+  delivery        Delivery @relation(fields: [deliveryId], references: [id])
+  actor           User?    @relation(fields: [actorId], references: [id])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  orderId         String        @unique
+  supplierId      String
+  storeId         String
+  invoiceNumber   String        @unique
+  status          InvoiceStatus @default(ISSUED)
+  currency        String        @default("OMR")
+  subtotalBaisa   Int
+  taxBaisa        Int
+  totalBaisa      Int
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime?
+  createdAt       DateTime      @default(now())
+  order           Order         @relation(fields: [orderId], references: [id])
+  paymentAttempts PaymentAttempt[]
+}
+
+model PaymentAttempt {
+  id                String        @id @default(cuid())
+  orderId           String?
+  invoiceId         String?
+  provider          String
+  providerReference String
+  idempotencyKey    String        @unique
+  status            PaymentStatus
+  amountBaisa       Int
+  rawEventJson      String
+  createdAt         DateTime      @default(now())
+  order             Order?        @relation(fields: [orderId], references: [id])
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id])
+}
+
+model Notification {
+  id              String    @id @default(cuid())
+  organizationId  String?
+  userId          String?
+  entityType      String
+  entityId        String
+  title           String
+  body            String
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  user            User?     @relation("UserNotifications", fields: [userId], references: [id])
+}
+
+model Attachment {
+  id              String   @id @default(cuid())
+  ownerOrgId      String
+  uploadedById    String
+  entityType      String
+  entityId        String
+  filename        String
+  mimeType        String
+  sizeBytes       Int
+  storagePath     String
+  retained        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  ownerOrg        Organization @relation(fields: [ownerOrgId], references: [id])
+  uploadedBy      User     @relation(fields: [uploadedById], references: [id])
+}
+
+model SupportTicket {
+  id              String              @id @default(cuid())
+  organizationId  String
+  createdById     String
+  status          SupportTicketStatus @default(OPEN)
+  subject         String
+  message         String
+  internalNotes   String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  organization    Organization        @relation(fields: [organizationId], references: [id])
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  actorId         String?
+  organizationId  String?
+  supplierId      String?
+  action          String
+  entityType      String
+  entityId        String
+  previousValueJson String?
+  newValueJson    String?
+  createdAt       DateTime @default(now())
+  actor           User?    @relation("ActorAuditLogs", fields: [actorId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model PlatformSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  valueJson String
+  updatedAt DateTime @updatedAt
+}

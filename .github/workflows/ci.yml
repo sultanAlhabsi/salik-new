@@ -1,0 +1,105 @@
+name: SALIK quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 22 * * *'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: file:./ci.db
+      SESSION_SECRET: ci-session-secret-not-used-in-production
+      PAYMENT_WEBHOOK_SECRET: ci-payment-secret
+      APP_ORIGIN: http://127.0.0.1:5173
+      PORT: 3000
+      OMAN_TIMEZONE: Asia/Muscat
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        run: npm run db:apply
+
+      - name: Run code quality suite
+        run: npm run quality
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-coverage
+          path: coverage/
+          if-no-files-found: error
+
+  browser-pr:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run Chromium UI gate
+        run: npm run test:e2e:ui:pr
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-pr-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  browser-matrix:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install browser matrix
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run complete browser matrix
+        run: npm run test:e2e:ui:matrix
+      - name: Upload matrix evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-matrix-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

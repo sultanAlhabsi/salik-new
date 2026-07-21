@@ -1,0 +1,16 @@
+export const tenantIsolationEvidence = [
+  { family: "products", read: "supplier list/detail and published marketplace query", write: "foreign product patch" },
+  { family: "categories", read: "supplier category list", write: "foreign category patch" },
+  { family: "warehouses", read: "supplier warehouse list", write: "foreign warehouse patch" },
+  { family: "inventory", read: "supplier stock list", write: "foreign stock adjustment and idempotency collision" },
+  { family: "orders", read: "supplier/store order lists", write: "foreign transition and payment initiation" },
+  { family: "cart", read: "user-scoped active cart", write: "foreign cart-item deletion" },
+  { family: "recurring", read: "store recurring list", write: "foreign patch/run/address" },
+  { family: "delivery", read: "supplier/driver delivery lists", write: "foreign assignment/status/reschedule" },
+  { family: "invoice", read: "tenant list and print", write: "foreign payment idempotency collision" },
+  { family: "file", read: "foreign attachment download", write: "foreign entity upload" },
+  { family: "notification", read: "tenant/user list", write: "foreign read marker" },
+  { family: "report", read: "supplier sales and store spending CSV", write: "not applicable" },
+  { family: "organization", read: "organization-bound profile", write: "role matrix boundary" },
+  { family: "driver", read: "assigned deliveries only", write: "assigned delivery only" },
+] as const;

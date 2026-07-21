@@ -1,6 +1,2 @@
-repos:
-    primary: "."
-    additional:
-        - "y"
 export:
-    auto: true
+  auto: true
