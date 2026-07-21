@@ -87,10 +87,4 @@ describe('multi-supplier checkout and inventory', () => {
     expect(updated.onHand).toBe(stock.onHand + 5);
     expect(await ctx.prisma.inventoryMovement.count({ where: { idempotencyKey: payload.idempotencyKey } })).toBe(1);
   });
-
-  it('can apply migrations repeatedly without replaying the schema', async () => {
-    const { applyMigrations } = await import('../../src/server/services/migrations');
-
-    await expect(applyMigrations(ctx.prisma)).resolves.toBeUndefined();
-  });
 });

@@ -11,8 +11,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salik_test
+          POSTGRES_USER: salik
+          POSTGRES_PASSWORD: salik_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salik -d salik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: file:./ci.db
+      DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test?schema=ci
+      TEST_DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test
       SESSION_SECRET: ci-session-secret-not-used-in-production
       PAYMENT_WEBHOOK_SECRET: ci-payment-secret
       APP_ORIGIN: http://127.0.0.1:5173
@@ -33,7 +48,7 @@ jobs:
         run: npm ci
 
       - name: Apply database migrations
-        run: npm run db:apply
+        run: npm run db:migrate:deploy
 
       - name: Run code quality suite
         run: npm run quality
@@ -51,6 +66,23 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salik_test
+          POSTGRES_USER: salik
+          POSTGRES_PASSWORD: salik_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salik -d salik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test?schema=ci_browser
+      TEST_DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -80,6 +112,23 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: salik_test
+          POSTGRES_USER: salik
+          POSTGRES_PASSWORD: salik_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salik -d salik_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test?schema=ci_browser_matrix
+      TEST_DATABASE_URL: postgresql://salik:salik_ci_only@127.0.0.1:5432/salik_test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

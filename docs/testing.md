@@ -1,9 +1,17 @@
 # Test infrastructure
 
+Start the dedicated local PostgreSQL service before running database-backed
+tests:
+
+```bash
+docker compose up -d --wait postgres
+export TEST_DATABASE_URL='postgresql://salik:salik_local_only@127.0.0.1:54329/salik'
+```
+
 Integration tests use `useTestApp()` or `withTestDatabase()` from
-`tests/integration/helpers.ts`. Each invocation creates a migrated SQLite file
-under the operating-system temporary directory and removes it afterward. A
-seeded context exposes factories plus `actors.loginAs(role)` for all six roles.
+`tests/integration/helpers.ts`. Each invocation creates a uniquely named,
+migrated PostgreSQL schema and drops it afterward. A seeded context exposes
+factories plus `actors.loginAs(role)` for all six roles.
 Each role and `actors.anonymous` own a separate Supertest cookie jar. The
 returned requests also provide `expectUnauthorized()`, `expectForbidden()`, and
 `expectNotFound()` status assertions. Login errors intentionally report only
@@ -19,14 +27,18 @@ Deterministic asynchronous controls live in
   exactly once, then permits retries. The Supabase test double uses this same
   controller; payment or other provider fakes can share it.
 
-Playwright never reads or resets the development database. Its configuration
-creates an absolute `file:` database under the dedicated
-`salik-playwright/<run-id>/e2e.db` temporary directory, uses ports 3300 and 5273
-by default, and refuses the development ports. Global setup applies migrations
-and seeds once; the automatic browser fixture reseeds before every test. The
-reset guard rejects relative paths, non-SQLite URLs, and any file outside the
-dedicated directory. Override ports with `SALIK_E2E_API_PORT` and
+Playwright never reads or resets the development or production schema. Its
+configuration creates a dedicated `salik_e2e_<run-id>` schema using
+`TEST_DATABASE_URL`, uses ports 3300 and 5273 by default, and refuses the
+development ports. Global setup applies all committed migrations and seeds
+once; the automatic browser fixture reseeds before every test. Global teardown
+drops the schema. Override ports with `SALIK_E2E_API_PORT` and
 `SALIK_E2E_WEB_PORT` when necessary.
+
+Destructive test helpers accept localhost PostgreSQL by default. A disposable
+remote test database requires the exact explicit confirmation
+`SALIK_ALLOW_REMOTE_TEST_DATABASE=I_UNDERSTAND_THIS_DESTROYS_TEST_DATA`.
+Production Supabase credentials must never be combined with that override.
 
 Browser journeys import `test`, `expect`, and `expectPortal` from
 `tests/e2e/fixtures.ts`. The named `loggedInAdmin`, `loggedInSupplier`,

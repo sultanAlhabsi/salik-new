@@ -1,12 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import request from "supertest";
 import { afterEach, beforeEach } from "vitest";
 import { createApp } from "../../src/server/app";
-import { applyMigrations } from "../../src/server/services/migrations";
 import { seedDatabase } from "../../src/server/services/seed";
+import { createIsolatedPostgresSchema } from "../helpers/postgres";
 import {
   createRoleTestActors,
   type RoleTestActors,
@@ -18,7 +15,7 @@ type SeedResult = Awaited<ReturnType<typeof seedDatabase>>;
 export type TestDatabase = {
   prisma: PrismaClient;
   agent: ReturnType<typeof request.agent>;
-  dbDir: string;
+  databaseScope: string;
   seed: SeedResult | null;
   factories: TestFactories;
   actors: RoleTestActors | null;
@@ -29,7 +26,7 @@ export type TestDatabase = {
 export type TestContext = {
   prisma: PrismaClient;
   agent: ReturnType<typeof request.agent>;
-  dbDir: string;
+  databaseScope: string;
   seed: SeedResult;
   factories: TestFactories;
   actors: RoleTestActors;
@@ -39,14 +36,10 @@ export type TestContext = {
 export async function createTestDatabase(
   options: { seed?: boolean } = {},
 ): Promise<TestDatabase> {
-  const dbDir = mkdtempSync(join(tmpdir(), "salik-test-"));
-  const previousDatabaseUrl = process.env.DATABASE_URL;
-  process.env.DATABASE_URL = `file:${join(dbDir, "test.db")}`;
-  const prisma = new PrismaClient();
-  let disposed = false;
+  const scope = await createIsolatedPostgresSchema({ prefix: "integration" });
+  const { prisma } = scope;
 
   try {
-    await applyMigrations(prisma);
     const seed = options.seed === false ? null : await seedDatabase(prisma);
     const factories = createTestFactories(prisma);
     const app = createApp({ prisma });
@@ -64,21 +57,20 @@ export async function createTestDatabase(
         );
       }
     };
-    const dispose = async () => {
-      if (disposed) return;
-      disposed = true;
-      await prisma.$disconnect();
-      rmSync(dbDir, { recursive: true, force: true });
-      if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
-      else process.env.DATABASE_URL = previousDatabaseUrl;
-    };
+    const dispose = scope.dispose;
 
-    return { prisma, agent, dbDir, seed, factories, actors, login, dispose };
+    return {
+      prisma,
+      agent,
+      databaseScope: scope.schema,
+      seed,
+      factories,
+      actors,
+      login,
+      dispose,
+    };
   } catch (error) {
-    await prisma.$disconnect();
-    rmSync(dbDir, { recursive: true, force: true });
-    if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
-    else process.env.DATABASE_URL = previousDatabaseUrl;
+    await scope.dispose();
     throw error;
   }
 }
@@ -100,7 +92,7 @@ export function useTestApp() {
 
   beforeEach(async () => {
     const testDatabase = await createTestDatabase();
-    context.dbDir = testDatabase.dbDir;
+    context.databaseScope = testDatabase.databaseScope;
     context.prisma = testDatabase.prisma;
     context.seed = testDatabase.seed!;
     context.agent = testDatabase.agent;

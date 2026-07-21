@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { postgresSchemaExists } from "../helpers/postgres";
 import { createTestDatabase, withTestDatabase } from "./helpers";
 
 describe("integration test database harness", () => {
@@ -29,12 +29,12 @@ describe("integration test database harness", () => {
   it("uses a fresh database for every lifecycle", async () => {
     const first = await createTestDatabase({ seed: false });
     await first.factories.organization({ name: "Only in the first database" });
-    const firstDirectory = first.dbDir;
+    const firstScope = first.databaseScope;
     await first.dispose();
 
     const second = await createTestDatabase({ seed: false });
     try {
-      expect(second.dbDir).not.toBe(firstDirectory);
+      expect(second.databaseScope).not.toBe(firstScope);
       expect(await second.prisma.organization.count()).toBe(0);
     } finally {
       await second.dispose();
@@ -42,13 +42,13 @@ describe("integration test database harness", () => {
   });
 
   it("removes the temporary database even when a scenario fails", async () => {
-    let temporaryDirectory = "";
+    let temporarySchema = "";
 
     await expect(
       withTestDatabase(
         async (testDatabase) => {
-          temporaryDirectory = testDatabase.dbDir;
-          expect(existsSync(temporaryDirectory)).toBe(true);
+          temporarySchema = testDatabase.databaseScope;
+          expect(await postgresSchemaExists(temporarySchema)).toBe(true);
           await testDatabase.factories.organization();
           throw new Error("intentional scenario failure");
         },
@@ -56,6 +56,6 @@ describe("integration test database harness", () => {
       ),
     ).rejects.toThrow("intentional scenario failure");
 
-    expect(existsSync(temporaryDirectory)).toBe(false);
+    expect(await postgresSchemaExists(temporarySchema)).toBe(false);
   });
 });

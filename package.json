@@ -31,10 +31,10 @@
     "test:regression": "npm run test:coverage && npm run test:e2e:regression",
     "quality": "npm run lint && npm run type-check && npm run test:coverage && npm run build",
     "prisma:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "tsx prisma/apply-migrations.ts",
-    "db:apply": "tsx prisma/apply-migrations.ts",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:reset:local": "prisma migrate reset --force --skip-seed",
+    "db:seed:demo": "tsx prisma/seed.ts"
   },
   "keywords": [
     "b2b",
@@ -79,6 +79,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/supertest": "^7.2.1",
@@ -91,6 +92,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "pg": "^8.22.0",
     "postcss": "^8.5.20",
     "prettier": "^3.9.5",
     "prisma": "^6.19.3",
