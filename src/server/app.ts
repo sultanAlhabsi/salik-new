@@ -21,6 +21,7 @@ import { supplierRoutes } from './routes/supplier.js';
 export function createApp({ prisma }: { prisma: PrismaClient }) {
   const app = express();
 
+  app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors({ origin: config.appOrigin, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
@@ -28,8 +29,13 @@ export function createApp({ prisma }: { prisma: PrismaClient }) {
   app.use(rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: true, legacyHeaders: false }));
   app.use(authMiddleware(prisma));
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, service: 'salik', timezone: config.omanTimezone });
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true, service: 'salik', timezone: config.omanTimezone });
+    } catch {
+      res.status(503).json({ ok: false, service: 'salik' });
+    }
   });
 
   app.use('/api/auth', authRoutes(prisma));

@@ -1,4 +1,7 @@
+import type { PrismaClient } from "@prisma/client";
+import request from "supertest";
 import { describe, expect, it } from "vitest";
+import { createApp } from "../../src/server/app";
 import { createTestDatabase } from "../integration/helpers";
 
 describe("API smoke", () => {
@@ -11,5 +14,19 @@ describe("API smoke", () => {
     } finally {
       await testDatabase.dispose();
     }
+  });
+
+  it("returns 503 without leaking the database error", async () => {
+    const prisma = {
+      $queryRaw: async () => {
+        throw new Error("postgresql://secret@host/db");
+      },
+    } as unknown as PrismaClient;
+
+    const response = await request(createApp({ prisma })).get("/api/health");
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ ok: false, service: "salik" });
+    expect(response.text).not.toContain("secret");
   });
 });
