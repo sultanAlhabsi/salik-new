@@ -4,6 +4,27 @@ import { calculateLineTotal } from '../domain/money.js';
 
 const password = 'Password123!';
 
+export function assertDemoSeedAllowed(
+  environment: NodeJS.ProcessEnv,
+  databaseUrl: string
+) {
+  if (environment.NODE_ENV === 'production') {
+    throw new Error('Demo seed is disabled in production');
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(databaseUrl);
+  } catch {
+    throw new Error('Demo seed requires a local PostgreSQL host');
+  }
+  if (
+    !['postgres:', 'postgresql:'].includes(parsed.protocol) ||
+    !['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)
+  ) {
+    throw new Error('Demo seed requires a local PostgreSQL host');
+  }
+}
+
 export async function seedDatabase(prisma: PrismaClient) {
   await clearDatabase(prisma);
   const passwordHash = await bcrypt.hash(password, 10);

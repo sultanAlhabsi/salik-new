@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { seedDatabase } from '../src/server/services/seed.js';
+import { assertDemoSeedAllowed, seedDatabase } from '../src/server/services/seed.js';
 import { isSupabaseEnabled, provisionSupabaseUser } from '../src/server/services/supabase.js';
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error('DATABASE_URL is required for the demo seed');
+assertDemoSeedAllowed(process.env, databaseUrl);
 
 const prisma = new PrismaClient();
 
