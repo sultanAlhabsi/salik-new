@@ -1,2 +1,4 @@
 export:
-  auto: true
+    auto: true
+sync:
+    remote: "git+https://github.com/sultanAlhabsi/salik-new.git"
