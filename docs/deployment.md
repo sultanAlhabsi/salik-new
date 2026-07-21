@@ -73,7 +73,7 @@ absent because SALIK reads Render's built-in `RENDER_EXTERNAL_URL`.
 Apply the Blueprint. A successful deploy performs:
 
 ```bash
-npm ci
+npm ci --include=dev
 npm run build
 npm run db:migrate:deploy
 npm start

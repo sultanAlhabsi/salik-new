@@ -28,6 +28,10 @@ function loadBlueprint() {
 }
 
 describe('Render Blueprint', () => {
+  it('installs build-time dependencies when NODE_ENV is production', () => {
+    expect(readFileSync('.npmrc', 'utf8')).toContain('include=dev');
+  });
+
   it('defines one free Frankfurt Node service with health checks', () => {
     const blueprint = loadBlueprint();
     expect(blueprint.services).toHaveLength(1);
@@ -40,7 +44,7 @@ describe('Render Blueprint', () => {
       branch: 'main',
       autoDeployTrigger: 'commit',
       healthCheckPath: '/api/health',
-      buildCommand: 'npm ci && npm run build',
+      buildCommand: 'npm ci --include=dev && npm run build',
       startCommand: 'npm run db:migrate:deploy && npm start'
     });
   });
