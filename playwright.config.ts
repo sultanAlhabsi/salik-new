@@ -80,7 +80,8 @@ export default defineConfig({
       command: `npm run dev:web -- --port ${new URL(e2e.webOrigin).port} --strictPort`,
       url: e2e.webOrigin,
       env: {
-        SALIK_API_ORIGIN: e2e.apiOrigin
+        SALIK_API_ORIGIN: e2e.apiOrigin,
+        CHOKIDAR_USEPOLLING: "true"
       },
       reuseExistingServer: false,
       timeout: 120000

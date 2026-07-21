@@ -73,6 +73,19 @@ describe("test suite taxonomy", () => {
     ).toBe(true);
   });
 
+  it("uses polling for the Playwright Vite server to avoid host watcher exhaustion", () => {
+    const webServers = Array.isArray(playwrightConfig.webServer)
+      ? playwrightConfig.webServer
+      : [playwrightConfig.webServer];
+    const viteServer = webServers.find((server) =>
+      server?.command.includes("dev:web"),
+    );
+
+    expect(viteServer?.env).toMatchObject({
+      CHOKIDAR_USEPOLLING: "true",
+    });
+  });
+
   it("runs the Chromium PR gate and schedules the complete browser matrix", () => {
     expect(ciWorkflow).toContain("cron: '0 22 * * *'");
     expect(ciWorkflow).toContain("workflow_dispatch:");

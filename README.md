@@ -7,7 +7,7 @@ SALIK is an English-language, multi-tenant B2B distribution platform for Oman. I
 - React 19 and Vite for the web application
 - Express 5 for the API
 - Supabase Auth and private Supabase Storage for hosted identity and attachments
-- Prisma and SQLite for the current business-data runtime and isolated tests
+- Prisma and PostgreSQL for business data, local development, CI, and isolated tests
 - Vitest and Supertest for domain and integration tests
 - Playwright for desktop and mobile browser journeys
 
@@ -18,9 +18,10 @@ Requirements: Node.js 22+ and npm.
 ```bash
 npm install
 cp .env.example .env
+docker compose up -d --wait postgres
 npm run prisma:generate
-npm run db:apply
-npm run db:seed
+npm run db:migrate:deploy
+npm run db:seed:demo
 npm run dev
 ```
 
@@ -63,13 +64,13 @@ The Supabase contract suite is safe-by-default and skips unless `SUPABASE_CONTRA
 
 Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` in `.env`. SALIK then uses Supabase Auth for login, token refresh, logout, password recovery, and password changes. Access and refresh tokens are held only in secure HTTP-only cookies. The secret key is server-only and must never be exposed through Vite variables or client code.
 
-The reviewed migration in `supabase/migrations/` creates the private `salik-private` bucket and tenant/user folder policies. `npm run db:seed` synchronizes the demo identities to Supabase Auth. Set `SALIK_SUPABASE_DISABLED=true` only for isolated local tests or an intentional offline fallback.
+The reviewed migration in `supabase/migrations/` creates the private `salik-private` bucket and tenant/user folder policies. The local-only `npm run db:seed:demo` command synchronizes demo identities when Supabase is intentionally configured for development. Set `SALIK_SUPABASE_DISABLED=true` only for isolated local tests or an intentional offline fallback.
 
 ## Database
 
-Reviewed SQL migrations are in `prisma/migrations/`. `npm run db:apply` records and applies each pending migration once. `npm run db:seed` clears and rebuilds demo data, so it is intended for local and test environments only.
+Reviewed PostgreSQL migrations are in `prisma/migrations/`. `npm run db:migrate:deploy` applies each pending migration once. The archived SQLite history in `prisma/migrations-sqlite-legacy/` is retained only for reference and is never executed.
 
-SQLite is the zero-setup business database for this build. Supabase Auth identities are linked through the unique `User.authUserId` field. Moving Prisma business data to Supabase Postgres still requires a PostgreSQL `DATABASE_URL`; the API and client contracts do not need to change when that connection is supplied.
+PostgreSQL is the only supported business-data engine. Local and CI tests use isolated schemas and refuse remote destructive targets by default. Hosted deployments use the Supabase Supavisor session pooler on port `5432`. Supabase Auth identities are linked through the unique `User.authUserId` field.
 
 ## Production build
 
@@ -79,6 +80,8 @@ npm start
 ```
 
 The production server serves the API and the compiled client from `dist/`. Configure `DATABASE_URL`, `APP_ORIGIN`, Supabase credentials, and payment integration values through the deployment environment. See [.env.example](.env.example) for the supported variables.
+
+For the free private-pilot deployment on Render and Supabase, follow the [deployment runbook](docs/deployment.md).
 
 ## Architecture notes
 

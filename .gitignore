@@ -8,6 +8,7 @@ output/playwright/
 output/devtools/
 .env
 .env.local
+.env.*.local
 *.db
 *.db-journal
 *.sqlite
