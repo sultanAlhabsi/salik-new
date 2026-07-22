@@ -26,6 +26,9 @@ export type HostedDemoProvisioner = (
 ) => Promise<string>;
 
 export const hostedDemoAccounts = preparedDemoAccounts;
+const obsoleteHostedDemoSubscriptionIds = [
+  "hosted-demo-subscription-muscat-fresh",
+] as const;
 
 export function assertHostedDemoBootstrapAllowed(
   environment: NodeJS.ProcessEnv,
@@ -70,12 +73,19 @@ export async function bootstrapHostedDemo(
     authUserIds.set(account.email, authUserId);
   }
 
+  await removeObsoleteHostedDemoRecords(prisma);
   await persistDemoDataset(prisma, { authUserIds });
 
   return {
     createdUsers,
     reconciledUsers: hostedDemoAccounts.length - createdUsers,
   };
+}
+
+async function removeObsoleteHostedDemoRecords(prisma: PrismaClient) {
+  await prisma.subscription.deleteMany({
+    where: { id: { in: [...obsoleteHostedDemoSubscriptionIds] } },
+  });
 }
 
 async function validateReservedDemoRecords(prisma: PrismaClient) {

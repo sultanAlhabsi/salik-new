@@ -52,6 +52,7 @@ describe("demo fixture catalog", () => {
   });
 
   it("keeps exactly the four prepared portal accounts", () => {
+    expect(demoFixtureIds.subscription).toBe("hosted-demo-subscription");
     expect(preparedDemoAccounts.map(({ email }) => email)).toEqual([
       "supplier@fresh.om",
       "store@alnoor.om",

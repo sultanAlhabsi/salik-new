@@ -35,6 +35,16 @@ describe('hosted demo bootstrap', () => {
       });
 
       const first = await bootstrapHostedDemo(database.prisma, provision);
+      await database.prisma.subscription.create({
+        data: {
+          id: 'hosted-demo-subscription-muscat-fresh',
+          supplierId: hostedDemoIds.supplier,
+          planId: hostedDemoIds.plan,
+          status: 'ACTIVE',
+          currentPeriodStart: new Date('2026-06-01T00:00:00.000Z'),
+          currentPeriodEnd: new Date('2026-06-30T23:00:00.000Z')
+        }
+      });
       const second = await bootstrapHostedDemo(database.prisma, provision);
 
       expect(first).toEqual({ createdUsers: 4, reconciledUsers: 0 });
@@ -148,6 +158,11 @@ describe('hosted demo bootstrap', () => {
           database.prisma.deliveryEvent.findUnique({ where: { id: hostedDemoIds.deliveryEvent } })
         ]);
       expect(subscription).toMatchObject({ supplierId: hostedDemoIds.supplier, status: 'ACTIVE' });
+      expect(
+        await database.prisma.subscription.count({
+          where: { id: { startsWith: 'hosted-demo-' } }
+        })
+      ).toBe(4);
       expect(cart).toMatchObject({ storeId: hostedDemoIds.store, status: 'ACTIVE' });
       expect(cartItem).toMatchObject({
         cartId: 'hosted-demo-cart-muttrah-family',

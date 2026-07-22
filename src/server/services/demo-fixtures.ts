@@ -126,7 +126,7 @@ export const demoFixtureIds = {
   warehouseAddress: "hosted-demo-address-warehouse",
   warehouse: "hosted-demo-warehouse",
   plan: id("plan", "growth"),
-  subscription: id("subscription", "muscat-fresh"),
+  subscription: "hosted-demo-subscription",
   category: "hosted-demo-category-dairy",
   milkProduct: "hosted-demo-product-milk",
   labanProduct: "hosted-demo-product-laban",
@@ -888,7 +888,10 @@ const plan = {
   supportsCredit: true,
 };
 const subscriptions = supplierIds.map((supplierId, index) => ({
-  id: id("subscription", supplierSeeds[index][0]),
+  id:
+    index === 0
+      ? demoFixtureIds.subscription
+      : id("subscription", supplierSeeds[index][0]),
   supplierId,
   planId: plan.id,
   status: ["ACTIVE", "TRIAL", "PAST_DUE", "ACTIVE"][index] as
