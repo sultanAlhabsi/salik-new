@@ -56,7 +56,7 @@ describe('hosted demo bootstrap', () => {
       });
 
       const users = await database.prisma.user.findMany({
-        where: { id: { startsWith: 'hosted-demo-user-' } },
+        where: { email: { in: hostedDemoAccounts.map(({ email }) => email) } },
         orderBy: { email: 'asc' }
       });
       expect(users).toHaveLength(4);
@@ -101,23 +101,38 @@ describe('hosted demo bootstrap', () => {
           expect(bcrypt.compare(hostedDemoPassword, passwordHash)).resolves.toBe(true)
         )
       );
+      expect(
+        await database.prisma.user.count({
+          where: {
+            id: { startsWith: 'hosted-demo-user-' },
+            email: { notIn: hostedDemoAccounts.map(({ email }) => email) },
+            authUserId: { not: null }
+          }
+        })
+      ).toBe(0);
 
-      const [organizations, addresses, warehouses, categories, products, stocks] =
+      const [organizations, addresses, warehouses, categories, products, stocks, orders, drivers] =
         await Promise.all([
           database.prisma.organization.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
           database.prisma.address.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
           database.prisma.warehouse.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
           database.prisma.productCategory.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
           database.prisma.product.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
-          database.prisma.inventoryStock.count({ where: { id: { startsWith: 'hosted-demo-' } } })
+          database.prisma.inventoryStock.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
+          database.prisma.order.count({ where: { id: { startsWith: 'hosted-demo-' } } }),
+          database.prisma.user.count({
+            where: { id: { startsWith: 'hosted-demo-' }, role: 'DRIVER' }
+          })
         ]);
-      expect({ organizations, addresses, warehouses, categories, products, stocks }).toEqual({
-        organizations: 2,
-        addresses: 3,
-        warehouses: 1,
-        categories: 1,
-        products: 2,
-        stocks: 2
+      expect({ organizations, addresses, warehouses, categories, products, stocks, orders, drivers }).toEqual({
+        organizations: 11,
+        addresses: 12,
+        warehouses: 5,
+        categories: 8,
+        products: 40,
+        stocks: 40,
+        orders: 20,
+        drivers: 6
       });
 
       const [subscription, cart, cartItem, order, orderItem, movement, invoice, delivery, event] =
@@ -134,18 +149,24 @@ describe('hosted demo bootstrap', () => {
         ]);
       expect(subscription).toMatchObject({ supplierId: hostedDemoIds.supplier, status: 'ACTIVE' });
       expect(cart).toMatchObject({ storeId: hostedDemoIds.store, status: 'ACTIVE' });
-      expect(cartItem).toMatchObject({ cartId: hostedDemoIds.cart, quantity: 2 });
+      expect(cartItem).toMatchObject({
+        cartId: 'hosted-demo-cart-muttrah-family',
+        quantity: 2
+      });
+      expect(
+        await database.prisma.cartItem.count({ where: { cartId: hostedDemoIds.cart } })
+      ).toBe(0);
       expect(order).toMatchObject({
         supplierId: hostedDemoIds.supplier,
         storeId: hostedDemoIds.store,
         status: 'READY_FOR_DELIVERY'
       });
-      expect(orderItem).toMatchObject({ orderId: hostedDemoIds.order, quantity: 3 });
+      expect(orderItem).toMatchObject({ orderId: hostedDemoIds.order, quantity: 1 });
       expect(movement).toMatchObject({
         orderId: hostedDemoIds.order,
         type: 'RESERVATION',
-        quantity: 3,
-        afterReserved: 3
+        quantity: 1,
+        afterReserved: 1
       });
       expect(invoice).toMatchObject({ orderId: hostedDemoIds.order, status: 'ISSUED' });
       expect(delivery).toMatchObject({

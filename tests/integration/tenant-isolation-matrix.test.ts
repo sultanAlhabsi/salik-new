@@ -311,11 +311,26 @@ describe("tenant and entity isolation evidence matrix", () => {
       .get("/api/store/products")
       .query({ supplierId: context.seed.organizations.beverageSupplier.id });
 
+    const expectedProductIds = await context.prisma.product.findMany({
+      where: {
+        supplierId: context.seed.organizations.beverageSupplier.id,
+        status: "PUBLISHED",
+      },
+      select: { id: true },
+    });
+
     expect(response.status).toBe(200);
-    expect(response.body.products.map((product: { id: string }) => product.id)).toEqual([
-      context.seed.products.beverageWater.id,
-    ]);
-    expect(response.body.products[0].status).toBe("PUBLISHED");
+    expect(
+      response.body.products.map((product: { id: string }) => product.id).sort(),
+    ).toEqual(expectedProductIds.map(({ id }) => id).sort());
+    expect(response.body.products).toContainEqual(
+      expect.objectContaining({ id: context.seed.products.beverageWater.id }),
+    );
+    expect(
+      response.body.products.every(
+        (product: { status: string }) => product.status === "PUBLISHED",
+      ),
+    ).toBe(true);
   });
 
   it("isolates driver reads and status writes and supplier driver assignment", async () => {
@@ -350,6 +365,7 @@ describe("tenant and entity isolation evidence matrix", () => {
         rawEventJson: "{}",
       },
     });
+    const paymentCountBeforeCollision = await context.prisma.paymentAttempt.count();
     const stockBefore = await context.prisma.inventoryStock.findFirstOrThrow({
       where: { productId: context.seed.products.beverageWater.id },
     });
@@ -371,7 +387,7 @@ describe("tenant and entity isolation evidence matrix", () => {
     expect(JSON.stringify(inventoryCollision.body)).not.toContain(foreignMovement.id);
     expect(JSON.stringify(paymentCollision.body)).not.toContain(paymentAttempt.id);
     expect(await context.prisma.inventoryStock.findUniqueOrThrow({ where: { id: stockBefore.id } })).toEqual(stockBefore);
-    expect(await context.prisma.paymentAttempt.count()).toBe(1);
+    expect(await context.prisma.paymentAttempt.count()).toBe(paymentCountBeforeCollision);
   });
 
   it("allows super admin cross-tenant visibility only through declared admin/shared routes", async () => {
