@@ -35,6 +35,30 @@ describe("local authentication and sessions", () => {
     }
   });
 
+  it("logs in the prepared demo administrator without replacing the private administrator", async () => {
+    const response = await context.agent.post("/api/auth/login").send({
+      email: "demo-admin@salik.om",
+      password: context.seed.password,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({
+      email: "demo-admin@salik.om",
+      role: "SUPER_ADMIN",
+      portal: "admin",
+    });
+    expect(context.seed.users.demoAdmin).toMatchObject({
+      email: "demo-admin@salik.om",
+      role: "SUPER_ADMIN",
+      organizationId: null,
+    });
+    expect(context.seed.users.superAdmin).toMatchObject({
+      email: "admin@salik.om",
+      role: "SUPER_ADMIN",
+    });
+    expect(context.seed.users.demoAdmin.id).not.toBe(context.seed.users.superAdmin.id);
+  });
+
   it("sets a hardened cookie and stores only its hash", async () => {
     const response = await context.agent.post("/api/auth/login").send({
       email: "store@alnoor.om",

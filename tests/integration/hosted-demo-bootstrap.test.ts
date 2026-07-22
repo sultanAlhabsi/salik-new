@@ -26,7 +26,7 @@ describe('hosted demo bootstrap', () => {
         data: {
           id: 'private-admin',
           authUserId: 'private-auth',
-          email: 'owner@example.com',
+          email: 'admin@salik.om',
           name: 'Private Owner',
           passwordHash: 'private-password-hash',
           role: 'SUPER_ADMIN',
@@ -37,8 +37,8 @@ describe('hosted demo bootstrap', () => {
       const first = await bootstrapHostedDemo(database.prisma, provision);
       const second = await bootstrapHostedDemo(database.prisma, provision);
 
-      expect(first).toEqual({ createdUsers: 3, reconciledUsers: 0 });
-      expect(second).toEqual({ createdUsers: 0, reconciledUsers: 3 });
+      expect(first).toEqual({ createdUsers: 4, reconciledUsers: 0 });
+      expect(second).toEqual({ createdUsers: 0, reconciledUsers: 4 });
       expect(provisioned.map(({ email }) => email)).toEqual([
         ...hostedDemoAccounts.map(({ email }) => email),
         ...hostedDemoAccounts.map(({ email }) => email)
@@ -49,7 +49,7 @@ describe('hosted demo bootstrap', () => {
       });
       expect(privateAdmin).toMatchObject({
         authUserId: 'private-auth',
-        email: 'owner@example.com',
+        email: 'admin@salik.om',
         passwordHash: 'private-password-hash',
         role: 'SUPER_ADMIN',
         organizationId: platform.id
@@ -59,7 +59,7 @@ describe('hosted demo bootstrap', () => {
         where: { id: { startsWith: 'hosted-demo-user-' } },
         orderBy: { email: 'asc' }
       });
-      expect(users).toHaveLength(3);
+      expect(users).toHaveLength(4);
       expect(users.map(({ email, role, status, organizationId, authUserId }) => ({
         email,
         role,
@@ -67,6 +67,13 @@ describe('hosted demo bootstrap', () => {
         organizationId,
         authUserId
       }))).toEqual([
+        {
+          email: 'demo-admin@salik.om',
+          role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+          organizationId: null,
+          authUserId: 'auth:demo-admin@salik.om'
+        },
         {
           email: 'driver@fresh.om',
           role: 'DRIVER',

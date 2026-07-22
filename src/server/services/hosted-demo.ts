@@ -5,6 +5,7 @@ import { calculateLineTotal } from '../domain/money.js';
 export const hostedDemoPassword = 'Password123!';
 
 export const hostedDemoIds = {
+  adminUser: 'hosted-demo-user-admin',
   supplier: 'hosted-demo-supplier',
   store: 'hosted-demo-store',
   supplierUser: 'hosted-demo-user-supplier',
@@ -36,8 +37,8 @@ export type HostedDemoProvisionInput = {
   email: string;
   password: string;
   name: string;
-  role: Extract<UserRole, 'SUPPLIER_ADMIN' | 'STORE_ADMIN' | 'DRIVER'>;
-  organizationId: string;
+  role: Extract<UserRole, 'SUPER_ADMIN' | 'SUPPLIER_ADMIN' | 'STORE_ADMIN' | 'DRIVER'>;
+  organizationId: string | null;
 };
 
 export type HostedDemoProvisioner = (input: HostedDemoProvisionInput) => Promise<string>;
@@ -80,6 +81,13 @@ export const hostedDemoAccounts = [
     name: 'Yusuf Delivery Driver',
     role: 'DRIVER',
     organizationId: hostedDemoIds.supplier
+  },
+  {
+    id: hostedDemoIds.adminUser,
+    email: 'demo-admin@salik.om',
+    name: 'SALIK Demo Admin',
+    role: 'SUPER_ADMIN',
+    organizationId: null
   }
 ] as const satisfies ReadonlyArray<
   Omit<HostedDemoProvisionInput, 'password'> & { id: string }

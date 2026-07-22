@@ -2,6 +2,13 @@ export const preparedDemoPassword = 'Password123!';
 
 export const preparedDemoAccounts = [
   {
+    portal: 'admin',
+    label: 'Admin demo',
+    email: 'demo-admin@salik.om',
+    password: preparedDemoPassword,
+    detail: 'Platform operations'
+  },
+  {
     portal: 'supplier',
     label: 'Supplier demo',
     email: 'supplier@fresh.om',

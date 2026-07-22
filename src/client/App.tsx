@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Loader2, LockKeyhole, Store, Truck, Warehouse } from 'lucide-react';
+import { ArrowRight, Building2, Loader2, LockKeyhole, Store, Truck, Warehouse } from 'lucide-react';
 import { api, login, logout, me } from './api';
 import { Button, Field } from './components/ui';
 import { preparedDemoAccounts, preparedDemoPassword } from './demo-access';
@@ -9,7 +9,7 @@ import { StorePortal } from './routes/StorePortal';
 import { SupplierPortal } from './routes/SupplierPortal';
 import type { CurrentUser } from './types';
 
-const demoIcons = { supplier: Warehouse, store: Store, driver: Truck } as const;
+const demoIcons = { admin: Building2, supplier: Warehouse, store: Store, driver: Truck } as const;
 
 export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);

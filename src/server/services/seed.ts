@@ -128,6 +128,9 @@ export async function seedDatabase(prisma: PrismaClient) {
     superAdmin: await prisma.user.create({
       data: { email: 'admin@salik.om', name: 'Aisha Platform Admin', passwordHash, role: 'SUPER_ADMIN', organizationId: platform.id }
     }),
+    demoAdmin: await prisma.user.create({
+      data: { email: 'demo-admin@salik.om', name: 'SALIK Demo Admin', passwordHash, role: 'SUPER_ADMIN' }
+    }),
     freshAdmin: await prisma.user.create({
       data: { email: 'supplier@fresh.om', name: 'Salim Fresh Admin', passwordHash, role: 'SUPPLIER_ADMIN', organizationId: freshSupplier.id }
     }),

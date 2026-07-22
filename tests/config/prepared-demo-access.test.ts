@@ -5,9 +5,16 @@ import {
 } from '../../src/client/demo-access';
 
 describe('prepared demo access', () => {
-  it('exposes only the three tenant portals with explicit shared credentials', () => {
+  it('exposes the four demo portals with explicit shared credentials', () => {
     expect(preparedDemoPassword).toBe('Password123!');
     expect(preparedDemoAccounts).toEqual([
+      {
+        portal: 'admin',
+        label: 'Admin demo',
+        email: 'demo-admin@salik.om',
+        password: 'Password123!',
+        detail: 'Platform operations'
+      },
       {
         portal: 'supplier',
         label: 'Supplier demo',
