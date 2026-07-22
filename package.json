@@ -35,7 +35,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:reset:local": "prisma migrate reset --force --skip-seed",
     "db:seed:demo": "tsx prisma/seed.ts",
-    "db:bootstrap:private": "tsx prisma/bootstrap.ts"
+    "db:bootstrap:private": "tsx prisma/bootstrap.ts",
+    "db:bootstrap:hosted-demo": "tsx prisma/bootstrap-demo.ts"
   },
   "keywords": [
     "b2b",
